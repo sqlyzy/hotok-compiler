@@ -8,10 +8,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Theos and iOS SDK
-        uses: rowsandcolumns/theos-action@v1
-        with:
-          theos-version: 'master'
+      - name: Install Tools and Theos
+        run: |
+          # Устанавливаем нужные для компиляции библиотеки на Linux
+          sudo apt-get update
+          sudo apt-get install -y clang make perl git xz-utils
+          
+          # Скачиваем оригинальный Theos в домашнюю папку
+          git clone --recursive https://github.com ~/theos
+          
+          # Скачиваем официальный iOS SDK
+          curl -LO https://github.com
+          tar -xf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks/
+          rm iPhoneOS14.5.sdk.tar.xz
 
       - name: Create Makefile
         run: |
@@ -25,6 +34,8 @@ jobs:
 
       - name: Compile Dylib
         run: |
+          # Указываем компилятору, где искать Theos
+          export THEOS=~/theos
           make package GO_EASY=1 FINALPACKAGE=1
           mv .theos/obj/HoTokChanger.dylib ./HoTokChanger.dylib
 
