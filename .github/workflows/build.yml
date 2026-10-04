@@ -3,16 +3,16 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Theos (iOS SDK)
-        run: |
-          bash -c "$(curl -fsSL https://githubusercontent.com)"
-          echo "THEOS=~/theos" >> $GITHUB_ENV
-          
+      - name: Setup Theos and iOS SDK
+        uses: apple-actions/setup-theos@v1.3.1
+        with:
+          theos-src: 'https://github.com'
+
       - name: Create Makefile
         run: |
           echo "TARGET = iphone:clang:latest:14.0" > Makefile
@@ -25,8 +25,8 @@ jobs:
 
       - name: Compile Dylib
         run: |
-          make package LOG=1
-          mv .theos/obj/debug/HoTokChanger.dylib ./HoTokChanger.dylib
+          make package GO_EASY=1
+          mv .theos/obj/HoTokChanger.dylib ./HoTokChanger.dylib
 
       - name: Upload Finished File
         uses: actions/upload-artifact@v4
