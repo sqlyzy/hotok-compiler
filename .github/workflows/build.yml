@@ -8,30 +8,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Theos and SDK manually
+      - name: Everything In One Step
         run: |
-          export THEOS=~/theos
+          # 1. Жестко объявляем пути для текущей сессии
+          export THEOS=$GITHUB_WORKSPACE/theos
+          
+          # 2. Скачиваем Theos напрямую в рабочую область проекта
           git clone --recursive https://github.com $THEOS
+          
+          # 3. Скачиваем официальный iOS SDK
           curl -LO https://github.com
           tar -xf iPhoneOS14.5.sdk.tar.xz -C $THEOS/sdks/
           rm iPhoneOS14.5.sdk.tar.xz
-          echo "THEOS=$THEOS" >> $GITHUB_ENV
-
-      - name: Create Makefile
-        run: |
+          
+          # 4. Создаем Makefile с жестко прописанным путем к свежему Theos
           echo "TARGET = iphone:clang:latest:14.0" > Makefile
           echo "ARCHS = arm64" >> Makefile
-          echo "include \$(THEOS)/makefiles/common.mk" >> Makefile
+          echo "THEOS_DEVICE_IP =" >> Makefile
+          echo "include $THEOS/makefiles/common.mk" >> Makefile
           echo "TWEAK_NAME = HoTokChanger" >> Makefile
           echo "HoTokChanger_FILES = Tweak.x" >> Makefile
           echo "HoTokChanger_CFLAGS = -fobjc-arc" >> Makefile
-          echo "include \$(THEOS)/makefiles/tweak.mk" >> Makefile
-
-      - name: Compile Dylib
-        run: |
-          export THEOS=~/theos
+          echo "include $THEOS/makefiles/tweak.mk" >> Makefile
+          
+          # 5. Запускаем компиляцию
           make package GO_EASY=1 FINALPACKAGE=1
-          mv .theos/obj/HoTokChanger.dylib ./HoTokChanger.dylib
+          
+          # 6. Переносим готовый файл в корень для загрузки
+          mv .theos/obj/HoTokChanger.dylib $GITHUB_WORKSPACE/HoTokChanger.dylib
 
       - name: Upload Finished File
         uses: actions/upload-artifact@v4
