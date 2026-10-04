@@ -8,34 +8,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Tools and Theos
+      - name: Install Tools and Theos VIA ZIP
         run: |
-          # Устанавливаем нужные для компиляции библиотеки на Linux
+          # 1. Обновляем окружение и ставим базовые утилиты
           sudo apt-get update
-          sudo apt-get install -y clang make perl git xz-utils
+          sudo apt-get install -y clang make perl unzip xz-utils
           
-          # Скачиваем оригинальный Theos в домашнюю папку
-          git clone --recursive https://github.com ~/theos
+          # 2. Создаем чистую папку для инструментов в корне проекта
+          mkdir -p $GITHUB_WORKSPACE/theos
           
-          # Скачиваем официальный iOS SDK
-          curl -LO https://github.com
-          tar -xf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks/
-          rm iPhoneOS14.5.sdk.tar.xz
+          # 3. Скачиваем Theos архивом (без git clone!) и распаковываем внутрь папки
+          curl -L https://github.com -o theos.zip
+          unzip -q theos.zip
+          mv theos-master/* $GITHUB_WORKSPACE/theos/
+          rm -rf theos.zip theos-master
+          
+          # 4. Скачиваем и распаковываем официальный iOS SDK
+          curl -L https://github.com -o sdk.tar.xz
+          tar -xf sdk.tar.xz -C $GITHUB_WORKSPACE/theos/sdks/
+          rm sdk.tar.xz
 
       - name: Create Makefile
         run: |
+          # Жестко прописываем путь до нашей папкиtheos
           echo "TARGET = iphone:clang:latest:14.0" > Makefile
           echo "ARCHS = arm64" >> Makefile
-          echo "include \$(THEOS)/makefiles/common.mk" >> Makefile
+          echo "include $GITHUB_WORKSPACE/theos/makefiles/common.mk" >> Makefile
           echo "TWEAK_NAME = HoTokChanger" >> Makefile
           echo "HoTokChanger_FILES = Tweak.x" >> Makefile
           echo "HoTokChanger_CFLAGS = -fobjc-arc" >> Makefile
-          echo "include \$(THEOS)/makefiles/tweak.mk" >> Makefile
+          echo "include $GITHUB_WORKSPACE/theos/makefiles/tweak.mk" >> Makefile
 
       - name: Compile Dylib
         run: |
-          # Указываем компилятору, где искать Theos
-          export THEOS=~/theos
+          # Направляем компилятор в рабочую папку
+          export THEOS=$GITHUB_WORKSPACE/theos
           make package GO_EASY=1 FINALPACKAGE=1
           mv .theos/obj/HoTokChanger.dylib ./HoTokChanger.dylib
 
