@@ -29,7 +29,7 @@ jobs:
           mv .theos/obj/debug/HoTokChanger.dylib ./HoTokChanger.dylib
 
       - name: Upload Finished File
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: HoTokChanger-Plugin
           path: ./HoTokChanger.dylib
