@@ -1,0 +1,35 @@
+name: Build HoTok Plugin
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Theos (iOS SDK)
+        run: |
+          bash -c "$(curl -fsSL https://githubusercontent.com)"
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          
+      - name: Create Makefile
+        run: |
+          echo "TARGET = iphone:clang:latest:14.0" > Makefile
+          echo "ARCHS = arm64" >> Makefile
+          echo "include \$(THEOS)/makefiles/common.mk" >> Makefile
+          echo "TWEAK_NAME = HoTokChanger" >> Makefile
+          echo "HoTokChanger_FILES = Tweak.x" >> Makefile
+          echo "HoTokChanger_CFLAGS = -fobjc-arc" >> Makefile
+          echo "include \$(THEOS)/makefiles/tweak.mk" >> Makefile
+
+      - name: Compile Dylib
+        run: |
+          make package LOG=1
+          mv .theos/obj/debug/HoTokChanger.dylib ./HoTokChanger.dylib
+
+      - name: Upload Finished File
+        uses: actions/artifacts@v4
+        with:
+          name: HoTokChanger-Plugin
+          path: ./HoTokChanger.dylib
