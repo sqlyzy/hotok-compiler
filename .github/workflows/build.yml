@@ -3,15 +3,19 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Theos and iOS SDK
-        uses: apple-actions/setup-theos@v1.3.1
-        with:
-          theos-src: 'https://github.com'
+      - name: Install Theos and SDK manually
+        run: |
+          export THEOS=~/theos
+          git clone --recursive https://github.com $THEOS
+          curl -LO https://github.com
+          tar -xf iPhoneOS14.5.sdk.tar.xz -C $THEOS/sdks/
+          rm iPhoneOS14.5.sdk.tar.xz
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
 
       - name: Create Makefile
         run: |
@@ -25,7 +29,8 @@ jobs:
 
       - name: Compile Dylib
         run: |
-          make package GO_EASY=1
+          export THEOS=~/theos
+          make package GO_EASY=1 FINALPACKAGE=1
           mv .theos/obj/HoTokChanger.dylib ./HoTokChanger.dylib
 
       - name: Upload Finished File
